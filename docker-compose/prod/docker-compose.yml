@@ -1,0 +1,151 @@
+services:
+
+  # ---------- Infrastructure ----------
+
+  configserver:
+    image: sahspeaks/configserver:latest
+    container_name: configserver
+    ports:
+      - "8071:8071"
+    environment:
+      SPRING_PROFILES_ACTIVE: git
+      ENCRYPT_KEY: ${ENCRYPT_KEY:?set ENCRYPT_KEY in .env}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8071/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservices-network
+
+  eurekaserver:
+    image: sahspeaks/eurekaserver:latest
+    container_name: eurekaserver
+    ports:
+      - "8070:8070"
+    environment:
+      SPRING_APPLICATION_NAME: eurekaserver
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071"
+    depends_on:
+      configserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8070/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservices-network
+
+  # ---------- Business services ----------
+
+  accounts:
+    image: sahspeaks/accounts:latest
+    container_name: accounts
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_APPLICATION_NAME: accounts
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8090/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservices-network
+
+  loans:
+    image: sahspeaks/loans:latest
+    container_name: loans
+    ports:
+      - "8092:8092"
+    environment:
+      SPRING_APPLICATION_NAME: loans
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8092/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservices-network
+
+  cards:
+    image: sahspeaks/cards:latest
+    container_name: cards
+    ports:
+      - "8091:8091"
+    environment:
+      SPRING_APPLICATION_NAME: cards
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8091/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservices-network
+
+  # ---------- Edge ----------
+
+  gatewayserver:
+    image: sahspeaks/gatewayserver:latest
+    container_name: gatewayserver
+    ports:
+      - "8072:8072"
+    environment:
+      SPRING_APPLICATION_NAME: gatewayserver
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+      accounts:
+        condition: service_healthy
+      loans:
+        condition: service_healthy
+      cards:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8072/actuator/health/readiness | grep UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge

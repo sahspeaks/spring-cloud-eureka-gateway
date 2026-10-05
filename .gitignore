@@ -1,0 +1,11 @@
+### Mac OS ###
+.DS_Store
+
+### Local environment / secrets ###
+# docker-compose/<env>/.env and <service>/src/main/resources/.env
+.env
+!.env.example
+
+### IntelliJ IDEA (personal files) ###
+.idea/workspace.xml
+.idea/shelf/
