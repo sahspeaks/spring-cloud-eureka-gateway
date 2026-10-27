@@ -1,6 +1,19 @@
 services:
 
   # ---------- Infrastructure ----------
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?set KEYCLOAK_ADMIN_USERNAME in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:7080:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    command: start-dev
+    networks:
+      - microservices-network
 
   configserver:
     image: sahspeaks/configserver:dev
@@ -126,6 +139,7 @@ services:
       SPRING_PROFILES_ACTIVE: default
       SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: "http://keycloak:8080/realms/master/protocol/openid-connect/certs"
     depends_on:
       configserver:
         condition: service_healthy
@@ -149,3 +163,6 @@ services:
 networks:
   microservices-network:
     driver: bridge
+
+volumes:
+  keycloak_data:

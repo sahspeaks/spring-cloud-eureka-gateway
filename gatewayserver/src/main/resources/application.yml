@@ -18,6 +18,13 @@ spring:
             locator:
               enabled: true
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI}
+
+
 management:
   endpoints:
     web:
